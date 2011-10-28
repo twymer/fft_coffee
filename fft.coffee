@@ -30,6 +30,12 @@ class Fft
     @data = data
 
   # Private
+  #
+  # Core FFT implementation from:
+  # Numerical Recipes: The Art of Scientific Computing
+  # Third Edition (2007)
+  # ISBN-10: 0521880688
+  # http://www.nr.com/
   fourier_transform: (data, n, isign) ->
     self = @
     nn = n << 1
