@@ -12,4 +12,7 @@ Preprocessor =
     data
 
 
-module.exports = Preprocessor
+if window?
+  window.Preprocessor = Preprocessor
+else
+  module.exports = Preprocessor

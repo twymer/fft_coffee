@@ -82,4 +82,7 @@ class Fft
     data[j] = temp
 
 
-module.exports = Fft
+if window?
+  window.Fft = Fft
+else
+  module.exports = Fft
