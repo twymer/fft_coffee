@@ -1,23 +1,35 @@
-class FFT
-  forward: (data, has_imaginary) ->
-    fft_data = []
-    if !has_imaginary?
-      for elem in data
-        fft_data.push elem
-        fft_data.push 0
+class Fft
+  constructor: (@sample_rate) ->
+
+  # Public
+  reset: ->
+    @data = null
+
+  # Public
+  magnitude: ->
+    mags = []
+    for i in [0...@data.length / 2] by 2
+      mags.push Math.sqrt(Math.pow(@data[i], 2) + Math.pow(@data[i+1], 2))
+    mags
+
+  # Public
+  frequency: (band) ->
+    width = @sample_rate / (@data.length / 2)
+    width * band
+
+  # Public
+  forward: (fft_data, processor) ->
+    if processor
+      data = processor(fft_data)
     else
-      fft_data = data.slice(0)
+      data = fft_data.slice(0)
 
-    next_power = Math.ceil(Math.log(fft_data.length) / Math.log(2))
-    extended_length = Math.pow(2, next_power)
-    while fft_data.length < extended_length
-      fft_data.push 0
-
-    data_size = fft_data.length / 2
     isign = 1
-    this.fourier_transform(fft_data, data_size, isign)
-    fft_data
+    this.pad(data)
+    this.fourier_transform(data, data.length / 2, isign)
+    @data = data
 
+  # Private
   fourier_transform: (data, n, isign) ->
     self = @
     nn = n << 1
@@ -25,8 +37,8 @@ class FFT
 
     for i in [1...nn] by 2
       if (j > i)
-        self._swap(data, j-1, i-1)
-        self._swap(data, j, i)
+        self.swap(data, j-1, i-1)
+        self.swap(data, j, i)
       m = n
 
       while(m >= 2 && j > m)
@@ -56,10 +68,18 @@ class FFT
         wi = wi * wpr + wtemp * wpi + wi
       mmax = istep
 
-  _swap: (data, i, j) ->
+  # Private
+  pad: (data) ->
+    next_power = Math.ceil(Math.log(data.length) / Math.log(2))
+    extended_length = Math.pow(2, next_power)
+    while data.length < extended_length
+      data.push 0
+
+  # Private
+  swap: (data, i, j) ->
     temp = data[i]
     data[i] = data[j]
     data[j] = temp
 
 
-module.exports = FFT
+module.exports = Fft
