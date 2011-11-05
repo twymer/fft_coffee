@@ -1,4 +1,4 @@
-Preprocessor =
+class Preprocessor
   # Example preprocessor for FFT data.
   #
   # Converts fft_data to a zero based average (avoid DC bias), and inserts 0

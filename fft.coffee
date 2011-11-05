@@ -4,84 +4,76 @@
 
 class Fft
   # Fft computes the the Fast Fourier Transform of data, using the Cooley–Tukey
-  # FFT algorithm
-  constructor: (@sample_rate) ->
-    @data = []
-    @mags = []
-
-  # Public: Clear cached results.
+  # FFT algorithm. The Cooley-Turkey algorithm requires the fft_data's length
+  # to be a power of 2, however this is handled automatically. You do NOT need
+  # to pad the data manually.
   #
-  # Returns: null
-  reset: ->
-    @data = []
-    @mags = []
-    null
+  # data - An array of data, alternating real and imaginary components. If you
+  # only have real data (ie displacement data), you need to add 0's in between
+  # your real data points. ie: [1,2,3,4] -> [1,0,2,0,3,0,4,0], or use a
+  # preprocessor
+  #
+  # sample_rate - The rate at which data was sampled. The results given by
+  # frequency() will have the same units as the sample rate. IE: Hz.
+  #
+  # preprocessor (optional) - This function will be called with the incoming
+  # data as it's argument. You can use the preprocessor to insert 0's for the
+  # imaginary component, convert to a 0 based average, or other signal cleanup.
+  constructor: (data, @sample_rate, preprocessor) ->
+    @amps = []
+    if preprocessor
+      @data = preprocessor(data.slice(0))
+    else
+      @data = data.slice(0)
+
+  # Public: Get fft results.
+  #
+  # Returns: Array of results from last fft transform, alternates real and
+  # imaginary components
+  results: ->
+    @data.slice(0)
 
   # Public: Runs fft in the forward direction. If you are uncertain if you want
   # forward or reverse, this is the one you want.
   #
-  # NOTE: The Cooley-Turkey algorithm requires the fft_data's length to be a
-  # power of 2. This is handled automatically, you do NOT need to pad the data
-  # manually.
-  #
-  # fft_data - An array of data, alternating real and imaginary components.  if
-  # you only have real data (ie vibration data), you need to add 0's in between
-  # your real data points. ie: [1,2,3,4] -> [1,0,2,0,3,0,4,0] (see
-  # preprocessor)
-  #
-  # preprocessor (optional) - A preprocessor for the fft_data. This function
-  # will be called with the incoming data as it's argument . You can use the
-  # preprocessor to insert 0's for the imaginary component, convert to a 0
-  # based average, or other signal cleanup.
-  #
-  # Returns: An array of alternating real and imaginary components of the
-  # tranformed input data.
-  forward: (fft_data, preprocessor) ->
-    this.run_fft(fft_data, 'forward', preprocessor)
+  # Returns: A reference to this object (for method chaining)
+  forward: ->
+    @data = this.run_fft('forward')
+    @
 
   # Public: Runs fft in the reverse direction.
   #
-  # NOTE: The Cooley-Turkey algorithm requires the fft_data's length to be a
-  # power of 2. This is handled automatically, you do NOT need to pad the data
-  # manually.
-  #
-  # fft_data - An array of data, alternating real and imaginary components.  if
-  # you only have real data (ie vibration data), you need to add 0's in between
-  # your real data points.  ie: [1,2,3,4] -> [1,0,2,0,3,0,4,0] (see
-  # preprocessor)
-  #
-  # preprocessor (optional) - A preprocessor for the fft_data. This function
-  # will be called with the incoming data as it's argument . You can use the
-  # preprocessor to insert 0's for the imaginary component, convert to a 0
-  # based average, or other signal cleanup.
-  #
-  # Returns: An array of alternating real and imaginary components of the
-  # tranformed input data.
-  reverse: (fft_data, preprocessor) ->
-    this.run_fft(fft_data, 'reverse', preprocessor)
+  # Returns: A reference to this object (for method chaining)
+  reverse: ->
+    @data = this.run_fft('reverse')
+    @
 
-  # Public: Compute the magnitude from the real and imaginary components of the
+  # Public: Compute the amplitudes from the real and imaginary components of the
   # last fft transformation.
   #
-  # Note: forward or reverse must have been called prior to using this function
-  #
-  # Note: The magnitude of fft transformed data is mirrored about the
-  # centerpoint. This function returns only the lower half of the magnitude
+  # Note: The amplitudes of fft transformed data is mirrored about the
+  # centerpoint. This function returns only the lower half of the amplitude
   # data.
   #
-  # Returns: an array of magnitude data.
-  magnitude: ->
-    return @mags if @mags.length > 0
-    mags = []
+  # Returns: an array of amplitude data.
+  amplitudes: ->
+    return @amps if @amps.length > 0
+    amps = []
     for i in [0...@data.length / 2] by 2
-      mags.push Math.sqrt(Math.pow(@data[i], 2) + Math.pow(@data[i+1], 2))
-    @mags = mags
+      amps.push Math.sqrt(Math.pow(@data[i], 2) + Math.pow(@data[i+1], 2))
+    @amps = amps
 
-  # Public: Compute the frequency of an element from the magnitude array.
+  # Public: The frequencies of the bands for the transform.
+  #
+  # Returns: An array of frequencies corresponding to the bands of the fft tranform.
+  frequencies: ->
+    (this.frequency(band) for band in [0..this.magnitudes.length])
+
+  # Public: Compute the frequency of an element from the amplitude array.
   #
   # Note: forward or reverse must have been called prior to using this function.
   #
-  # Returns: The frequency of the magnitude data corresponding to index 'band'.
+  # Returns: The frequency of the amplitude data corresponding to index 'band'.
   frequency: (band) ->
     width = @sample_rate / (@data.length / 2)
     width * band
@@ -90,12 +82,12 @@ class Fft
   #
   # Note: forward or reverse must have been called prior to using this function.
   #
-  # Returns: The magnitude at the given frequency.
+  # Returns: The amplitude at the given frequency.
   amplitude: (frequency) ->
     width = @sample_rate / (@data.length / 2)
     band = Math.floor(frequency / width)
-    mags = this.magnitude()
-    mags[band]
+    amps = this.amplitudes()
+    amps[band]
 
   # Public: Compute the primary frequency.
   #
@@ -103,36 +95,31 @@ class Fft
   #
   # Returns: The frequency with the highest amplitude (the primary frequency).
   primary_frequency: ->
-    mags = this.magnitude()
-    max = mags[0]
+    amps = this.amplitudes()
+    max = amps[0]
     max_index = 0
-    for i in [0...mags.length]
-      if mags[i] > max
-        max = mags[i]
+    for i in [0...amps.length]
+      if amps[i] > max
+        max = amps[i]
         max_index = i
     this.frequency(max_index)
 
 
   # Private
-  run_fft: (fft_data, direction, preprocessor) ->
-    this.reset
-    if preprocessor
-      data = preprocessor(fft_data)
-    else
-      data = fft_data.slice(0)
-
+  run_fft: (direction) ->
+    @amps = []
     if direction == 'reverse'
       isign = -1
     else
       isign = 1
 
-    this.pad(data)
-    this.fourier_transform(data, data.length / 2, isign)
+    this.pad(@data)
+    this.fourier_transform(@data, @data.length / 2, isign)
 
     if direction == 'reverse'
-      @data = (elem / (data.length / 2) for elem in data)
+      (elem / (@data.length / 2) for elem in @data)
     else
-      @data = data
+      @data
 
   # Private
   #

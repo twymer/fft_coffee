@@ -13,9 +13,8 @@ test = vows.describe('fft').addBatch
 
     'basic sin wave': (topic) ->
       sample_rate = 256
-      fft = new Fft(sample_rate)
-      fft.forward(topic, Preprocessor.process)
-      assert.equal fft.primary_frequency(), 1
+      fft = new Fft(topic, sample_rate, new Preprocessor().process)
+      assert.equal fft.forward().primary_frequency(), 1
 
   'when processing a high frequency pure sin wave':
     topic: () ->
@@ -23,9 +22,8 @@ test = vows.describe('fft').addBatch
 
     'higher frequency sin wave': (topic) ->
       sample_rate = 256
-      fft = new Fft(sample_rate)
-      fft.forward(topic, Preprocessor.process)
-      assert.equal fft.primary_frequency(), 8
+      fft = new Fft(topic, sample_rate, new Preprocessor().process)
+      assert.equal fft.forward().primary_frequency(), 8
 
   'multi frequency sin wave':
     topic: () ->
@@ -33,8 +31,7 @@ test = vows.describe('fft').addBatch
 
     'multi frequency sin wave': (topic) ->
       sample_rate = 256
-      fft = new Fft(sample_rate)
-      fft.forward(topic, Preprocessor.process)
+      fft = new Fft(topic, sample_rate, new Preprocessor().process).forward()
       assert.isTrue fft.amplitude(1) > 1000
       assert.isTrue fft.amplitude(16) > 1000
       assert.isFalse fft.amplitude(2) > 1
@@ -44,12 +41,12 @@ test = vows.describe('fft').addBatch
 
   'forward and reverse':
     topic: () ->
-      (Math.sin(x) for x in [0...(16 * 2 *Math.PI)] by Math.PI / 128.0)
+      (Math.sin(x) for x in [0...(128 * 2 *Math.PI)] by Math.PI / 128.0)
 
     'reverse and forward are inverse operations': (topic) ->
       sample_rate = 256
-      fft = new Fft(sample_rate)
-      result = fft.reverse(fft.forward(topic))
+      fft = new Fft(topic, sample_rate)
+      result = fft.forward().reverse().results()
       for i in [0...topic.length]
         assert.isTrue(Math.abs(result[i] - topic[i]) < 1e-12)
 
