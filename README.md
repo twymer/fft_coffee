@@ -59,7 +59,8 @@ No.
 
 #### What about imaginary numbers?
 By default, this library assumes the incoming data is an array of alternating real, and imaginary components.
-If you have only real data, check out the preprocessor.
+If you have only real data, you can pass a preprocessing function as the third argument to the constructor.
+Check out src/preprocessor.
 
 
 I want to use this library in my project!
