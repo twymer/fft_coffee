@@ -1,7 +1,7 @@
 vows         = require 'vows'
 assert       = require 'assert'
-Fft          = require './fft'
-Preprocessor = require './preprocessor'
+Fft          = require '../src/fft'
+Preprocessor = require '../src/preprocessor'
 
 test = vows.describe('fft').addBatch
   'when processing a pure sin wave':

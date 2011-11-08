@@ -67,7 +67,7 @@ class Fft
   #
   # Returns: An array of frequencies corresponding to the bands of the fft tranform.
   frequencies: ->
-    (this.frequency(band) for band in [0..this.magnitudes.length])
+    (this.frequency(band) for band in [0..this.amplitudes().length])
 
   # Public: Compute the frequency of an element from the amplitude array.
   #
